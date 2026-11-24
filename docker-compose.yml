@@ -1,33 +1,100 @@
+# Sobe a plataforma inteira com UM comando:  docker compose up -d --build
+# Configuracao por variaveis de ambiente (arquivo .env opcional; veja .env.example).
+x-saude: &saude
+  interval: 5s
+  timeout: 3s
+  retries: 12
+  start_period: 10s
+
+x-tracing: &tracing
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+
 services:
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      retries: 5
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  jaeger:                       # painel de rastreamento: http://localhost:16686
+    image: jaegertracing/all-in-one:1.62.0
+    ports:
+      - "16686:16686"
 
   inferencia:
-    build: ./inferencia
+    build:
+      context: .
+      dockerfile: inferencia/Dockerfile
     environment:
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      redis: {condition: service_healthy}
+      <<: *tracing
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-token-de-servico-local}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/saude')\""]
+      <<: *saude
+
+  vetorial:
+    build:
+      context: .
+      dockerfile: vetorial/Dockerfile
+    environment:
+      <<: *tracing
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-token-de-servico-local}
+      VETORIAL_PATH: /dados/vetorial.json
+      RETENCAO_HORAS: ${RETENCAO_HORAS:-24}
+    volumes:
+      - vetorial_dados:/dados
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8002/saude')\""]
+      <<: *saude
 
   worker:
-    build: ./worker
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
     environment:
-      - REDIS_URL=redis://redis:6379/0
+      <<: *tracing
+      REDIS_URL: redis://redis:6379/0
+      URL_INFERENCIA: http://inferencia:8001
+      URL_VETORIAL: http://vetorial:8002
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-token-de-servico-local}
+      RESULT_TTL_SECONDS: ${RESULT_TTL_SECONDS:-3600}
     depends_on:
-      redis: {condition: service_healthy}
+      redis:
+        condition: service_healthy
+      inferencia:
+        condition: service_healthy
+      vetorial:
+        condition: service_healthy
 
   gateway:
-    build: ./gateway
-    ports: ["8000:8000"]
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    ports:
+      - "8000:8000"
     environment:
-      - URL_INFERENCIA=http://inferencia:8001
-      - JWT_SEGREDO=${JWT_SEGREDO:-troque-este-segredo}
-    depends_on: [inferencia]
+      <<: *tracing
+      REDIS_URL: redis://redis:6379/0
+      URL_INFERENCIA: http://inferencia:8001
+      URL_VETORIAL: http://vetorial:8002
+      SERVICE_TOKEN: ${SERVICE_TOKEN:-token-de-servico-local}
+      JWT_SEGREDO: ${JWT_SEGREDO:-troque-este-segredo}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-troque-esta-senha}
+      RATE_LIMIT_POR_MIN: ${RATE_LIMIT_POR_MIN:-30}
+      RESULT_TTL_SECONDS: ${RESULT_TTL_SECONDS:-3600}
+    depends_on:
+      redis:
+        condition: service_healthy
+      inferencia:
+        condition: service_healthy
+      vetorial:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/saude')\""]
+      <<: *saude
 
-# Observe: os servicos se referenciam pelo NOME (inferencia, redis),
-# nunca por IP fixo. Isso e descoberta de servicos. (Aula 14)
+volumes:
+  vetorial_dados:
