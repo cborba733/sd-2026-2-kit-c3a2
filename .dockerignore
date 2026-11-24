@@ -1,0 +1,7 @@
+.git
+.env
+.venv
+dados
+__pycache__
+*.pyc
+*.joblib
