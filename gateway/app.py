@@ -242,3 +242,30 @@ def inicio():
             "documentacao": "/docs",
             "login": "POST /login",
             "readme": "https://github.com/cborba733/sd-2026-2-kit-c3a2"}
+
+
+_ultimo_aviso = 0.0
+
+
+def _ping(url):
+    try:
+        requests.get(url.rstrip("/") + "/saude", timeout=120)
+    except requests.RequestException:
+        pass
+
+
+def _acordar_servicos():
+    """Plano gratuito: acorda em paralelo inferencia, vetorial e worker (no maximo 1 vez por minuto)."""
+    global _ultimo_aviso
+    if not WORKER_URL or time.time() - _ultimo_aviso < 60:
+        return
+    _ultimo_aviso = time.time()
+    for url in (URL_INFERENCIA, URL_VETORIAL, WORKER_URL):
+        threading.Thread(target=_ping, args=(url,), daemon=True).start()
+
+
+@app.middleware("http")
+async def acordar_no_acesso(request: Request, call_next):
+    if request.url.path in ("/", "/login", "/docs"):
+        _acordar_servicos()
+    return await call_next(request)
