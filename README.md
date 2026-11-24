@@ -6,7 +6,7 @@ Autor: Caio Borba da Silva Souza (trabalho individual).
 A plataforma recebe textos, classifica o sentimento (positivo/negativo) e permite buscar textos parecidos.
 O foco do trabalho é a **arquitetura distribuída**, não a sofisticação do modelo: microsserviços, fila, resiliência, observabilidade, segurança e deploy.
 
-**URL pública (Render, plano gratuito):** _(preencher após o deploy)_
+**URL pública (Render, plano gratuito):** https://caio-c3-gateway.onrender.com
 
 > No plano gratuito do Render os serviços "dormem" após 15 minutos sem uso. A primeira chamada pode levar cerca de 1 minuto.
 
@@ -154,3 +154,17 @@ render.yaml          blueprint do deploy no Render
 ## Testes
 
 `python3 scripts/smoke_test.py [URL] [--limite]` verifica: `/saude`, recusa sem token (`401`), login certo e errado, `/predict`, fila + worker, armazenamento vetorial, `/similares` e `DELETE`. Com `--limite` testa também o `429`. Funciona contra o Compose local e contra a URL pública.
+
+## Deploy no Render (plano gratuito)
+
+O `render.yaml` cria de uma vez os 4 serviços (web services Docker gratuitos) e o Redis (Key Value). No painel do Render: **New > Blueprint** e escolha este repositório. O Render pede os segredos `SERVICE_TOKEN` (o mesmo valor nos 4 serviços) e `ADMIN_PASSWORD`. Eles ficam só no painel, nunca no repositório.
+
+URL pública do gateway: https://caio-c3-gateway.onrender.com (HTTPS com certificado gerenciado pelo Render).
+
+Teste contra a URL pública:
+
+```bash
+ADMIN_PASSWORD='sua-senha' python3 scripts/smoke_test.py https://caio-c3-gateway.onrender.com
+```
+
+Observações do plano gratuito: os serviços dormem após 15 minutos sem uso (a primeira chamada demora cerca de 1 minuto); o worker roda como web service gratuito e é acordado pelo gateway; o Redis gratuito não persiste dados; o arquivo do armazenamento vetorial é efêmero; o Jaeger roda só no `docker compose` local.
