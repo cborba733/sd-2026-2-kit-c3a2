@@ -69,7 +69,7 @@ codigo, corpo = req("POST", "/jobs", {"texto": "o time jogou muito bem hoje"}, t
 checar("POST /jobs enfileira (202)", codigo == 202 and "id" in corpo, f"-> {codigo}")
 job = corpo.get("id")
 status = None
-for _ in range(90):                     # ate ~90 s (o worker gratuito pode estar dormindo)
+for _ in range(180):                     # ate ~3 min (o worker gratuito pode estar dormindo)
     codigo, corpo = req("GET", f"/jobs/{job}", token=token)
     status = corpo.get("status")
     if status in ("pronto", "falhou"):

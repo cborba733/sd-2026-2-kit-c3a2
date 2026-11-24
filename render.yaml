@@ -52,9 +52,9 @@ services:
       - key: URL_VETORIAL
         value: https://caio-c3-vetorial.onrender.com
       - key: TIMEOUT_SERVICO
-        value: "40"
+        value: "60"
       - key: ESPERA_BASE
-        value: "2"
+        value: "5"
 
   - type: web
     name: caio-c3-gateway
@@ -84,6 +84,6 @@ services:
       - key: WORKER_URL
         value: https://caio-c3-worker.onrender.com
       - key: TIMEOUT_SERVICO
-        value: "40"
+        value: "60"
       - key: ESPERA_BASE
-        value: "2"
+        value: "5"
