@@ -233,3 +233,12 @@ def saude():
     return {"status": "ok", "fila": "ok" if fila_ok else "indisponivel",
             "disjuntores": {"inferencia": disjuntor_inferencia.estado,
                             "vetorial": disjuntor_vetorial.estado}}
+
+
+@app.get("/", include_in_schema=False)
+def inicio():
+    return {"servico": "Plataforma de IA como Servico (C3.A2)",
+            "saude": "/saude",
+            "documentacao": "/docs",
+            "login": "POST /login",
+            "readme": "https://github.com/cborba733/sd-2026-2-kit-c3a2"}
