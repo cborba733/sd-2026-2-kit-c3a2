@@ -1,0 +1,89 @@
+# Blueprint do Render (plano gratuito): cria os 4 servicos e o Redis (Key Value) de uma vez.
+# Painel do Render -> New -> Blueprint -> escolher este repositorio.
+services:
+  - type: keyvalue
+    name: caio-c3-redis
+    plan: free
+    ipAllowList: []          # so os servicos da propria conta acessam
+
+  - type: web
+    name: caio-c3-inferencia
+    runtime: docker
+    plan: free
+    dockerfilePath: ./inferencia/Dockerfile
+    dockerContext: .
+    healthCheckPath: /saude
+    envVars:
+      - key: SERVICE_TOKEN
+        sync: false
+
+  - type: web
+    name: caio-c3-vetorial
+    runtime: docker
+    plan: free
+    dockerfilePath: ./vetorial/Dockerfile
+    dockerContext: .
+    healthCheckPath: /saude
+    envVars:
+      - key: SERVICE_TOKEN
+        sync: false
+      - key: VETORIAL_PATH
+        value: /dados/vetorial.json
+      - key: RETENCAO_HORAS
+        value: "24"
+
+  - type: web
+    name: caio-c3-worker
+    runtime: docker
+    plan: free
+    dockerfilePath: ./worker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /saude
+    envVars:
+      - key: SERVICE_TOKEN
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: caio-c3-redis
+          property: connectionString
+      - key: URL_INFERENCIA
+        value: https://caio-c3-inferencia.onrender.com
+      - key: URL_VETORIAL
+        value: https://caio-c3-vetorial.onrender.com
+      - key: TIMEOUT_SERVICO
+        value: "40"
+      - key: ESPERA_BASE
+        value: "2"
+
+  - type: web
+    name: caio-c3-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./gateway/Dockerfile
+    dockerContext: .
+    healthCheckPath: /saude
+    envVars:
+      - key: JWT_SEGREDO
+        generateValue: true
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SERVICE_TOKEN
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: caio-c3-redis
+          property: connectionString
+      - key: URL_INFERENCIA
+        value: https://caio-c3-inferencia.onrender.com
+      - key: URL_VETORIAL
+        value: https://caio-c3-vetorial.onrender.com
+      - key: WORKER_URL
+        value: https://caio-c3-worker.onrender.com
+      - key: TIMEOUT_SERVICO
+        value: "40"
+      - key: ESPERA_BASE
+        value: "2"
