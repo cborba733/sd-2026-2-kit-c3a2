@@ -79,7 +79,12 @@ def _ip_cliente(request: Request):
     return encaminhado.split(",")[0].strip() if encaminhado else request.client.host
 
 
-def autenticar(request: Request) -> str:
+from fastapi.security import HTTPBearer  # noqa: E402
+
+_esquema_bearer = HTTPBearer(auto_error=False, description="Cole o token devolvido por POST /login")
+
+
+def autenticar(request: Request, _credencial=Depends(_esquema_bearer)) -> str:
     """Exige 'Authorization: Bearer <jwt>' valido e aplica o limite por usuario."""
     cabecalho = request.headers.get("authorization", "")
     if not cabecalho.lower().startswith("bearer "):
