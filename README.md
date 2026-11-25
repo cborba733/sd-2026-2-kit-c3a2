@@ -172,3 +172,10 @@ Observações do plano gratuito: os serviços dormem após 15 minutos sem uso (a
 Tempos de despertar medidos no plano gratuito (serviço dormindo): inferência cerca de 38 s, vetorial 18 s e worker 13 s. Por isso o gateway e o worker usam timeout de 60 s , 4 tentativas e espera inicial de 10 s (10 s, 20 s, 40 s). Se a primeira chamada depois de um tempo parado devolver `502`, aguarde cerca de 1 minuto e repita: os serviços já estarão acordados.
 
 **Importante (cold start no plano gratuito):** no Render gratuito, um serviço dormindo só acorda com chamadas vindas de fora do Render; chamadas entre serviços recebem `502` e não os acordam. Por isso, antes de testar a URL pública, abra https://caio-c3-gateway.onrender.com no navegador e espere a página mostrar todos os serviços como "pronto" (cerca de 1 minuto). O `scripts/smoke_test.py` faz isso sozinho. Em um plano pago, com instâncias sempre ligadas, essa etapa não existe.
+
+### Testando pelo navegador (`/docs`)
+
+1. Abra https://caio-c3-gateway.onrender.com e espere os serviços ficarem "pronto".
+2. Abra `/docs`, entre em `POST /login` > **Try it out**, informe `{"usuario": "admin", "senha": "<senha de teste>"}` e clique em **Execute**.
+3. Copie o valor de `access_token` (sem as aspas), clique em **Authorize** no topo, cole no campo **Value** e confirme.
+4. Use as demais rotas (`/predict`, `/jobs`, `/similares`...) com **Try it out**. O token vale 60 minutos.
