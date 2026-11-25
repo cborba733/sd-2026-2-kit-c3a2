@@ -5,6 +5,8 @@ import os
 import threading
 import time
 
+from urllib.parse import urlparse
+
 import requests
 
 from comum.log import criar_logger
@@ -55,6 +57,17 @@ class CircuitBreaker:
         return resultado
 
 
+def _acordar(url, timeout):
+    """Plano gratuito: servico dormindo devolve 502 para POST, mas SEGURA um GET ate acordar.
+    Faz um GET em /saude do mesmo servico. Devolve True se ele respondeu 200."""
+    partes = urlparse(url)
+    try:
+        r = requests.get(f"{partes.scheme}://{partes.netloc}/saude", timeout=timeout)
+        return r.status_code == 200
+    except requests.RequestException:
+        return False
+
+
 def chamar_servico(breaker, metodo, url, tentativas=None, espera_base=None, timeout=None, **kwargs):
     """Chama outro servico por HTTP. Erro de rede, tempo esgotado e resposta 5xx sao
     retentados (espera 0,5s, 1s, 2s...). Resposta 4xx volta direto para quem chamou.
@@ -76,6 +89,8 @@ def chamar_servico(breaker, metodo, url, tentativas=None, espera_base=None, time
                                breaker.nome, tentativa, tentativas, erro)
                 if tentativa == tentativas:
                     raise
+                if tentativa == 1 and _acordar(url, timeout):
+                    continue          # acordou: repete ja, sem esperar
                 time.sleep(espera_base * 2 ** (tentativa - 1))
 
     return breaker.chamar(com_retentativa)
