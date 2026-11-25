@@ -235,8 +235,7 @@ def saude():
                             "vetorial": disjuntor_vetorial.estado}}
 
 
-@app.get("/", include_in_schema=False)
-def inicio():
+def inicio_json():
     return {"servico": "Plataforma de IA como Servico (C3.A2)",
             "saude": "/saude",
             "documentacao": "/docs",
@@ -269,3 +268,57 @@ async def acordar_no_acesso(request: Request, call_next):
     if request.url.path in ("/", "/login", "/docs"):
         _acordar_servicos()
     return await call_next(request)
+
+
+from fastapi.responses import HTMLResponse  # noqa: E402
+
+_PAGINA = """<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plataforma de IA como Servico (C3.A2)</title>
+<style>body{font-family:system-ui,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;line-height:1.5}
+li{margin:6px 0}.ok{color:#0a7a2f}.er{color:#b00020}</style></head><body>
+<h1>Plataforma de IA como Servi&ccedil;o (C3.A2)</h1>
+<p>No plano gratuito do Render os servi&ccedil;os internos dormem sem uso e s&oacute; acordam com chamadas
+vindas de fora. Esta p&aacute;gina os acorda a partir do seu navegador. Aguarde todos ficarem prontos
+(cerca de 1 minuto) antes de testar.</p>
+<ul id="lista"><li>gateway: <span class="ok">pronto</span></li></ul>
+<p id="fim"></p>
+<p><a href="/docs">Documenta&ccedil;&atilde;o interativa (/docs)</a> &middot; <a href="/saude">/saude</a> &middot;
+<a href="https://github.com/cborba733/sd-2026-2-kit-c3a2">C&oacute;digo e README</a></p>
+<script>
+const alvos = __ALVOS__;
+const nomes = Object.keys(alvos);
+let pendentes = nomes.length;
+const lista = document.getElementById("lista");
+const fim = document.getElementById("fim");
+if (!pendentes) fim.textContent = "Execucao local: nao ha nada para acordar.";
+nomes.forEach(function (n) {
+  const li = document.createElement("li");
+  li.innerHTML = n + ': <span>acordando...</span>';
+  lista.appendChild(li);
+  const t0 = Date.now();
+  fetch(alvos[n].replace(/\\/$/, "") + "/saude", {mode: "no-cors"})
+    .then(function () {
+      li.lastChild.textContent = "pronto (" + Math.round((Date.now() - t0) / 1000) + " s)";
+      li.lastChild.className = "ok";
+    })
+    .catch(function () {
+      li.lastChild.textContent = "sem resposta (recarregue a pagina)";
+      li.lastChild.className = "er";
+    })
+    .finally(function () {
+      if (--pendentes === 0) fim.textContent = "Servicos acordados. Pode usar o /docs ou o smoke test.";
+    });
+});
+</script></body></html>"""
+
+
+@app.get("/", include_in_schema=False)
+def inicio(request: Request):
+    if "text/html" not in request.headers.get("accept", ""):
+        return inicio_json()
+    alvos = {}
+    if WORKER_URL:
+        alvos = {"inferencia": URL_INFERENCIA, "vetorial": URL_VETORIAL, "worker": WORKER_URL}
+    return HTMLResponse(_PAGINA.replace("__ALVOS__", json.dumps(alvos)))

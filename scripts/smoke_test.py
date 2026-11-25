@@ -44,7 +44,27 @@ def checar(nome, ok, detalhe=""):
         falhas += 1
 
 
+def acordar_servicos():
+    """Deploy gratuito: os servicos internos so acordam com chamadas vindas de FORA do Render."""
+    if "-gateway" not in BASE:
+        return
+    import threading
+
+    def ping(nome):
+        try:
+            urllib.request.urlopen(BASE.replace("-gateway", "-" + nome) + "/saude", timeout=120)
+        except Exception:
+            pass
+
+    ts = [threading.Thread(target=ping, args=(n,)) for n in ("inferencia", "vetorial", "worker")]
+    for x in ts:
+        x.start()
+    for x in ts:
+        x.join()
+
+
 print(f"Testando {BASE}\n(se for o deploy gratuito, a primeira chamada pode levar ~1 min: o servico acorda)\n")
+acordar_servicos()
 codigo, corpo = req("GET", "/saude")
 checar("GET /saude responde 200", codigo == 200, str(corpo))
 
