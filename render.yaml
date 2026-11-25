@@ -54,7 +54,9 @@ services:
       - key: TIMEOUT_SERVICO
         value: "60"
       - key: ESPERA_BASE
-        value: "5"
+        value: "10"
+      - key: TENTATIVAS_SERVICO
+        value: "4"
 
   - type: web
     name: caio-c3-gateway
@@ -86,4 +88,6 @@ services:
       - key: TIMEOUT_SERVICO
         value: "60"
       - key: ESPERA_BASE
-        value: "5"
+        value: "10"
+      - key: TENTATIVAS_SERVICO
+        value: "4"

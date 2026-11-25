@@ -169,4 +169,4 @@ ADMIN_PASSWORD='sua-senha' python3 scripts/smoke_test.py https://caio-c3-gateway
 
 Observações do plano gratuito: os serviços dormem após 15 minutos sem uso (a primeira chamada demora cerca de 1 minuto); o worker roda como web service gratuito e é acordado pelo gateway; o Redis gratuito não persiste dados; o arquivo do armazenamento vetorial é efêmero; o Jaeger roda só no `docker compose` local.
 
-Tempos de despertar medidos no plano gratuito (serviço dormindo): inferência cerca de 38 s, vetorial 18 s e worker 13 s. Por isso o gateway e o worker usam timeout de 60 s e espera de 5 s entre tentativas. Se a primeira chamada depois de um tempo parado devolver `502`, aguarde cerca de 1 minuto e repita: os serviços já estarão acordados.
+Tempos de despertar medidos no plano gratuito (serviço dormindo): inferência cerca de 38 s, vetorial 18 s e worker 13 s. Por isso o gateway e o worker usam timeout de 60 s , 4 tentativas e espera inicial de 10 s (10 s, 20 s, 40 s). Se a primeira chamada depois de um tempo parado devolver `502`, aguarde cerca de 1 minuto e repita: os serviços já estarão acordados.
